@@ -3,10 +3,10 @@ import java.util.Iterator;
 import java.util.Queue;
 
 public class ConcurrentMostRecentlyInsertedQueue<E> extends AbstractQueue<E> {
-    private MostRecentlyInsertedQueue<E> queue;
+    private final MostRecentlyInsertedQueue<E> queue;
 
-    public ConcurrentMostRecentlyInsertedQueue(MostRecentlyInsertedQueue<E> queue) {
-        this.queue = queue;
+    public ConcurrentMostRecentlyInsertedQueue(int capacity) {
+            this.queue = new MostRecentlyInsertedQueue<E>(capacity);
     }
 
     @Override
@@ -32,5 +32,13 @@ public class ConcurrentMostRecentlyInsertedQueue<E> extends AbstractQueue<E> {
     @Override
     public synchronized E peek() {
         return queue.peek();
+    }
+
+    public synchronized E remove() {
+        return queue.remove();
+    }
+
+    public static void main(String[] args) {
+
     }
 }

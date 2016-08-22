@@ -26,7 +26,7 @@ public class MostRecentlyInsertedQueue<E> extends AbstractQueue<E> {
         if (size() == capacity) remove();
         elements[nextTailIndex] = e;
         if (nextTailIndex >= capacity) nextTailIndex = 0;
-        nextTailIndex = incrementIndex(nextTailIndex);
+        nextTailIndex = increment(nextTailIndex);
         if (nextHeadIndex == nextTailIndex) isFull = true;
         return true;
     }
@@ -37,7 +37,7 @@ public class MostRecentlyInsertedQueue<E> extends AbstractQueue<E> {
         E e = elements[nextHeadIndex];
         if (null != e) {
             elements[nextHeadIndex] = null;
-            nextHeadIndex = incrementIndex(nextHeadIndex);
+            nextHeadIndex = increment(nextHeadIndex);
             isFull = false;
         }
         return e;
@@ -98,23 +98,13 @@ public class MostRecentlyInsertedQueue<E> extends AbstractQueue<E> {
                 if (!hasNext()) throw new NoSuchElementException();
                 isFirst = false;
                 lastReturnedIndex = index;
-                index = incrementIndex(index);
+                index = increment(index);
                 return elements[lastReturnedIndex];
             }
-
-            @Override
-            public void remove() {
-                if(lastReturnedIndex == -1) {
-                    throw new IllegalStateException();
-                } else {
-                    throw new UnsupportedOperationException("Operation is not supported");
-                }
-            }
-
         };
     }
 
-    private int incrementIndex(int index) {
+    private int increment(int index) {
         index++;
         if (index >= capacity) index = 0;
         return index;
@@ -125,18 +115,5 @@ public class MostRecentlyInsertedQueue<E> extends AbstractQueue<E> {
         if (index < 0) index = capacity - 1;
         return index;
     }
-
-
-    public static void main(String[] args) {
-
-        Queue<Integer> q = new MostRecentlyInsertedQueue<>(10);
-        for(int i = 0; i < 15; i++) {
-            q.offer(i);
-        }
-        q.offer(1);
-
-        System.out.println(q.toString());
-    }
-
 }
 

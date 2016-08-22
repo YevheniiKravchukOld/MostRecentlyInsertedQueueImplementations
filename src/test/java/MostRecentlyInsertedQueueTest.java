@@ -146,14 +146,6 @@ public class MostRecentlyInsertedQueueTest {
     }
 
     @Test(expected = UnsupportedOperationException.class)
-    public void testIteratorRemoveThrowsUnsupportedOperationException() {
-        q.offer(1);
-        Iterator<Integer> iterator= q.iterator();
-        iterator.next();
-        iterator.remove();
-    }
-
-    @Test(expected = IllegalStateException.class)
     public void testIteratorRemoveThrowsIllegalStateException() {
         q.iterator().remove();
     }
