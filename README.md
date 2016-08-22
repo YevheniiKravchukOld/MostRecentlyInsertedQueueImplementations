@@ -13,7 +13,7 @@ To create an implementation of java.util.Queue<E> interface, which purpose is to
 ## behavior example
 The queue behaves as follows:
 
-    ```java
+    ```
        Queue<Integer> queue = new MostRecentlyInsertedQueue<Integer>(3);
        // queue.size(): 0, contents (head -> tail): [ ]
        queue.offer(1); // queue.size(): 1, contents (head -> tail): [ 1 ]
@@ -24,6 +24,7 @@ The queue behaves as follows:
        int poll1 = queue.poll(); // queue.size(): 2, contents (head -> tail): [ 4, 5 ], poll1 = 3
        int poll2 = queue.poll(); // queue.size(): 1, contents (head -> tail): [ 5 ], poll2 = 4
        queue.clear(); // queue.size(): 0, contents (head -> tail): [ ]
+
     ```
 
 ## implementations
