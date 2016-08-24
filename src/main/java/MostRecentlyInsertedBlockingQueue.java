@@ -44,6 +44,27 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
         return e;
     }
 
+    private void removeAt(int i) {
+        final E[] elements = this.elements;
+        if (i == nextHeadIndex) {
+            elements[nextHeadIndex] = null;
+            nextHeadIndex = increment(nextHeadIndex);
+        } else {
+            while (true) {
+                int nextIndex = increment(i);
+                if(nextIndex != nextTailIndex) {
+                    elements[i] = elements[nextIndex];
+                    i = nextIndex;
+                } else {
+                    elements[i] = null;
+                    nextTailIndex = i;
+                    break;
+                }
+            }
+        }
+        --size;
+    }
+
     public MostRecentlyInsertedBlockingQueue(int capacity) {
         if (capacity <= 0) throw new IllegalArgumentException();
         elements = (E[]) new Object[capacity];
@@ -212,7 +233,7 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
     @Override
     public boolean offer(E e) {
         if (e == null) throw new NullPointerException();
-        final ReentrantLock lock = mainLock;
+        final ReentrantLock lock = this.mainLock;
         lock.lock();
         try {
             if (size == elements.length) {
@@ -234,6 +255,30 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
         lock.lock();
         try {
             return (size == 0) ? null : elements[nextHeadIndex];
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        if (o == null) return false;
+        final E[] elements = this.elements;
+        final ReentrantLock lock = this.mainLock;
+        lock.lock();
+        try {
+            int i = nextHeadIndex;
+            int k = 0;
+            while (true) {
+                if (k++ >= size) {
+                    return false;
+                }
+                if(o.equals(elements[i])){
+                    removeAt(i);
+                    return true;
+                }
+                i = increment(i);
+            }
         } finally {
             lock.unlock();
         }

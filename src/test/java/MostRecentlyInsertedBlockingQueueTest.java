@@ -115,4 +115,24 @@ public class MostRecentlyInsertedBlockingQueueTest {
         Thread.sleep(100);
         assertEquals(0, q.size());
     }
+
+    @Test
+    public void testRemoveWorksProperly() throws InterruptedException {
+        MostRecentlyInsertedBlockingQueue<String> q = new MostRecentlyInsertedBlockingQueue<>(1);
+
+        q.put("PES");
+
+        //This thread remains blocked when trying to call take(...)
+        //on empty queue
+        Thread t1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                q.remove("PES");
+            }
+        });
+
+        t1.start();
+        Thread.sleep(100);
+        assertEquals(0, q.size());
+    }
 }
