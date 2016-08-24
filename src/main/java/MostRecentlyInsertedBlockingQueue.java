@@ -22,14 +22,14 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
 
     private final Condition notEmpty;
 
-    private final Condition notFull;
-
-
     private int increment(int index) {
         return (++index == elements.length) ? 0 : index;
     }
 
     private void insert(E e) {
+        if (size == elements.length) {
+            E ignored = poll();
+        }
         elements[nextTailIndex] = e;
         nextTailIndex = increment(nextTailIndex);
         ++size;
@@ -42,7 +42,6 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
         elements[nextHeadIndex] = null;
         nextHeadIndex = increment(nextHeadIndex);
         --size;
-        notFull.signal();
         return e;
     }
 
@@ -50,20 +49,15 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
         if (capacity <= 0) throw new IllegalArgumentException();
         elements = (E[]) new Object[capacity];
         mainLock = new ReentrantLock();
-        notFull = mainLock.newCondition();
         notEmpty = mainLock.newCondition();
     }
 
     @Override
     public Iterator<E> iterator() {
-        final ReentrantLock lock = mainLock;
-        lock.lock();
-        try {
             return new Iterator<E>() {
                 private int index = nextHeadIndex;
                 private int lastReturnedIndex = -1;
                 private boolean isFirst = size == elements.length;
-
 
                 @Override
                 public boolean hasNext() {
@@ -72,22 +66,13 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
 
                 @Override
                 public E next() {
-                    final ReentrantLock lock = MostRecentlyInsertedBlockingQueue.this.mainLock;
-                    lock.lock();
-                    try {
                         if (!hasNext()) throw new NoSuchElementException();
                         isFirst = false;
                         lastReturnedIndex = index;
                         index = increment(index);
                         return elements[lastReturnedIndex];
-                    } finally {
-                        lock.unlock();
-                    }
                 }
             };
-        } finally {
-            lock.unlock();
-        }
     }
 
     @Override
@@ -104,18 +89,9 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
     @Override
     public void put(E e) throws InterruptedException {
         if (e == null) throw new NullPointerException();
-        final E[] elements = this.elements;
         final ReentrantLock lock = mainLock;
         lock.lockInterruptibly();
         try {
-            try {
-                while (size == elements.length) {
-                    notFull.await();
-                }
-            } catch (InterruptedException ie) {
-                notFull.signal();
-                throw ie;
-            }
             insert(e);
         } finally {
             lock.unlock();
@@ -130,20 +106,11 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
         lock.lockInterruptibly();
         try {
             while (true) {
-                if (size != elements.length) {
-                    insert(e);
-                    return true;
-                }
-
                 if (nanos <= 0) {
                     return false;
                 }
-                try {
-                    nanos = notFull.awaitNanos(nanos);
-                } catch (InterruptedException ie) {
-                    notFull.signal();
-                    throw ie;
-                }
+                insert(e);
+                return true;
             }
         } finally {
             lock.unlock();
@@ -165,6 +132,17 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
             }
             E e = extract();
             return e;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public E poll() {
+        final ReentrantLock lock = mainLock;
+        lock.lock();
+        try {
+            return  (size == 0) ? null : extract();
         } finally {
             lock.unlock();
         }
@@ -207,12 +185,34 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
 
     @Override
     public int drainTo(Collection<? super E> c) {
-        throw new UnsupportedOperationException();
+        final ReentrantLock lock = this.mainLock;
+        lock.lock();
+        int drained = 0;
+        try {
+            while(!isEmpty()) {
+                c.add(poll());
+                drained++;
+            }
+        } finally {
+            lock.unlock();
+        }
+        return drained;
     }
 
     @Override
     public int drainTo(Collection<? super E> c, int maxElements) {
-        throw new UnsupportedOperationException();
+        final ReentrantLock lock = this.mainLock;
+        lock.lock();
+        int drained = 0;
+        try {
+            while(!isEmpty() && drained < maxElements) {
+                c.add(poll());
+                drained++;
+            }
+        } finally {
+            lock.unlock();
+        }
+        return drained;
     }
 
     @Override
@@ -229,19 +229,6 @@ public class MostRecentlyInsertedBlockingQueue<E> extends AbstractQueue<E> imple
                 insert(e);
                 return true;
             }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    @Override
-    public E poll() {
-        final ReentrantLock lock = mainLock;
-        lock.lock();
-        try {
-            if (size == 0) return null;
-            E e = extract();
-            return e;
         } finally {
             lock.unlock();
         }
