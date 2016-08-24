@@ -29,7 +29,7 @@ public class MostRecentlyInsertedBlockingQueueTest {
                         try {
                             Thread.sleep(new Random().nextInt(100));
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            throw new RuntimeException();
                         }
                         q.offer(i);
                     }
@@ -44,37 +44,12 @@ public class MostRecentlyInsertedBlockingQueueTest {
         }
     }
 
-
-    @Test
-    public void testCode() throws InterruptedException {
-        MostRecentlyInsertedBlockingQueue<String> q = new MostRecentlyInsertedBlockingQueue<>(1);
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(5 * 1000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                try {
-                    q.take();
-                    System.out.println("Taken");
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }).start();
-
-        System.out.println(q.toString());
-    }
-
     @Test
     public void testQueueBlocksThreadsOnTakeWhenEmpty() throws InterruptedException {
         MostRecentlyInsertedBlockingQueue<String> q = new MostRecentlyInsertedBlockingQueue<>(1);
 
-        //This thread remains blocked when trying to take
-        //from empty queue
+        //This thread remains blocked when trying to call take(...)
+        //on empty queue
         Thread t1 = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -88,7 +63,6 @@ public class MostRecentlyInsertedBlockingQueueTest {
 
         t1.start();
         Thread.sleep(100);
-        System.out.println("Taken: " + t1.getState());
         assertEquals(Thread.State.valueOf("WAITING"), t1.getState());
     }
 
@@ -96,8 +70,8 @@ public class MostRecentlyInsertedBlockingQueueTest {
     public void testQueueBlocksThreadsOnPollWithTimeoutWhenEmpty() throws InterruptedException {
         MostRecentlyInsertedBlockingQueue<String> q = new MostRecentlyInsertedBlockingQueue<>(1);
 
-        //This thread remains blocked when trying to take
-        //from empty queue
+        //This thread remains blocked when trying to call poll()
+        //on empty queue
         Thread t1 = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -112,5 +86,33 @@ public class MostRecentlyInsertedBlockingQueueTest {
         Thread.sleep(100);
 
         assertEquals(Thread.State.valueOf("TIMED_WAITING"), t1.getState());
+    }
+
+    @Test
+    public void testTakeGetsElementWhenQueueBecomesNotEmpty() throws InterruptedException {
+        MostRecentlyInsertedBlockingQueue<String> q = new MostRecentlyInsertedBlockingQueue<>(1);
+
+        //This thread remains blocked when trying to call take(...)
+        //on empty queue
+        Thread t1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String e = q.take();
+                    assertEquals("PES", e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+
+        t1.start();
+
+        Thread.sleep(100);
+        q.put("PES");
+        assertEquals(1, q.size());
+
+        Thread.sleep(100);
+        assertEquals(0, q.size());
     }
 }
